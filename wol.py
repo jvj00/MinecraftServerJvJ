@@ -50,9 +50,6 @@ def start(message):
     if message.from_user.username is None:
         bot.send_message(message.chat.id, "Non possiedi uno username.\nInserisci uno username dalle impostazioni di telegram per poter utilizzare questo servizio")
     elif message.from_user.id in users and users[message.from_user.id]["isRegistered"]:
-    if message.from_user.username is None:
-        bot.send_message(message.chat.id, "Non possiedi uno username.\nInserisci uno username dalle impostazioni di telegram per poter utilizzare questo servizio")
-    elif message.from_user.id in users and users[message.from_user.id]["isRegistered"]:
         bot.send_message(message.chat.id, "\U0001F917 Bentornato " + message.from_user.first_name +"!")
     elif message.from_user.id not in users:
         bot.send_message(message.chat.id, "\U0001F510 Per registrarti nel sistema inserisci la password...")
