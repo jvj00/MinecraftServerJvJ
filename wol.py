@@ -9,8 +9,8 @@ from wakeonlan import send_magic_packet
 import socket
 
 ## Set VARIABLEs ##
-#path_json = "/home/pi/Desktop/HeatBHot/"
-path_json = "./"
+path_json = "/home/pi/Desktop/MinecraftServerJvJ/"
+#path_json = "./"
 
 env={}
 try:
@@ -46,6 +46,9 @@ except:
 @bot.message_handler(commands=['start'])
 def start(message):
     global users
+    if message.from_user.username is None:
+        bot.send_message(message.chat.id, "Non possiedi uno username.\nInserisci uno username dalle impostazioni di telegram per poter utilizzare questo servizio")
+    elif message.from_user.id in users and users[message.from_user.id]["isRegistered"]:
     if message.from_user.username is None:
         bot.send_message(message.chat.id, "Non possiedi uno username.\nInserisci uno username dalle impostazioni di telegram per poter utilizzare questo servizio")
     elif message.from_user.id in users and users[message.from_user.id]["isRegistered"]:
@@ -86,8 +89,7 @@ def reset(message):
         txt=message.text.split()
         if len(txt)==2 and txt[1].isnumeric() and int(txt[1]) in users and not users[int(txt[1])]["isAdmin"]:
             user=int(txt[1])
-            users[user]["isRegistered"]=False
-            users[user]["attempt"]=3
+            del users[user]
             save_users()
             bot.send_message(message.chat.id, "\U00002705 L'utente "+str(user)+" è stato resettato e può ora registrarsi")
         else:
