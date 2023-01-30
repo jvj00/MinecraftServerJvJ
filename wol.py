@@ -113,7 +113,7 @@ def listusers(message):
 
 @bot.message_handler(commands=['maintenance'])
 def listusers(message):
-    global users
+    global users, maintenance
     if check_admin(message.from_user):
         txt=message.text.split()
         if len(txt)==2 and (txt[1].upper()=="ON" or txt[1].upper()=="OFF"):
