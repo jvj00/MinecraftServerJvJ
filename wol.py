@@ -119,6 +119,8 @@ def listusers(message):
         if len(txt)==2 and (txt[1].upper()=="ON" or txt[1].upper()=="OFF"):
             maintenance = True if txt[1].upper()=="ON" else False
             bot.send_message(message.chat.id, "Manutenzione "+("ATTIVATA" if maintenance else "DISATTIVATA"))
+        else
+            bot.send_message(message.chat.id, "La manutenzione risulta "+("ATTIVA" if maintenance else "NON ATTIVA"))
 
 @bot.message_handler(commands=['notify_on'])
 def listusers(message):
