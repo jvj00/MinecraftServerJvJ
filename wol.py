@@ -138,8 +138,10 @@ def status(message):
 def on(message):
     global state
     if check_auth(message.from_user):
-        send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface)
         bot.send_message(message.chat.id, "Avvio server in 30 secondi...")
+        for i in range(5):
+            send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface)
+            time.sleep(.1)
         notify_except(message.from_user.id, "Il server è stato avviato da "+message.from_user.first_name + "\n\U0000231B Attendere 30 secondi...")
 
 @bot.message_handler(commands=['off'])
