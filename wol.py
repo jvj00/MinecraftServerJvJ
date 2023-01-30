@@ -28,6 +28,7 @@ mac_server=env["mac_server"]
 users={} #dict of dictionaries to store state-variables for each user
 ping_response=False
 status_server=False
+maintenance=False
 
 ## FIRST STEPs ##
 
@@ -113,6 +114,15 @@ def listusers(message):
             txt+="\n"
         bot.send_message(message.chat.id, txt)
 
+@bot.message_handler(commands=['maintenance'])
+def listusers(message):
+    global users
+    if check_admin(message.from_user):
+        txt=message.text.split()
+        if len(txt)==2 and (txt[1].upper()=="ON" or txt[1].upper()=="OFF"):
+            maintenance = True if txt[1].upper()=="ON" else False
+            bot.send_message(message.chat.id, "Manutenzione "+("ATTIVATA" if maintenance else "DISATTIVATA"))
+
 @bot.message_handler(commands=['notify_on'])
 def listusers(message):
     global users
@@ -197,11 +207,12 @@ def notify_admins(text):
             bot.send_message(user,text)
 
 def notify_except(exception, text):
-    global users
-    text="\U00002139 "+text
-    for user in users:
-        if users[user]["notify"] and user!=exception:
-            bot.send_message(user,text)
+    global users, maintenance
+    if not maintenance:
+        text="\U00002139 "+text
+        for user in users:
+            if users[user]["notify"] and user!=exception:
+                bot.send_message(user,text)
 
 def check_auth(user):
     global users
