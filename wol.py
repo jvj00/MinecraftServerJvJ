@@ -7,6 +7,7 @@ import signal
 import sys
 from wakeonlan import send_magic_packet
 import socket
+from datetime import datetime, timedelta
 
 ## Set VARIABLEs ##
 path_json = "/home/pi/Desktop/MinecraftServerJvJ/"
@@ -29,6 +30,7 @@ users={} #dict of dictionaries to store state-variables for each user
 ping_response=False
 status_server=False
 maintenance=False
+last_on_message=datetime.now()-timedelta(minutes=1)
 
 ## FIRST STEPs ##
 
@@ -93,6 +95,13 @@ def reset(message):
         else:
             bot.send_message(message.chat.id, "Uso incorretto o utente inesistente. Usa invece:\n<code>/reset [user_id]</code>")
 
+@bot.message_handler(commands=['say'])
+def say(message):
+    global users
+    if check_admin(message.from_user):
+        if len(message.text.split())>=2:
+            notify_except('', "AVVISO SERVER: " + message.text[4:].strip())
+
 @bot.message_handler(commands=['listusers'])
 def listusers(message):
     global users
@@ -140,24 +149,29 @@ def listusers(message):
 
 @bot.message_handler(commands=['status'])
 def status(message):
-    global state
+    global status_server
     if check_auth(message.from_user):
         bot.send_message(message.chat.id, "\U0001F7E2 Server ON" if status_server else "\U0001F534 Server OFF")
 
 
 @bot.message_handler(commands=['on'])
 def on(message):
-    global state
+    global status_server, last_on_message
     if check_auth(message.from_user):
-        bot.send_message(message.chat.id, "Avvio server in 30 secondi...")
-        for i in range(5):
-            send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface)
-            time.sleep(.1)
-        notify_except(message.from_user.id, "Il server è stato avviato da "+message.from_user.first_name + "\n\U0000231B Attendere 30 secondi...")
+        if not status_server and datetime.now()>=last_on_message+timedelta(seconds=29):
+            bot.send_message(message.chat.id, "Avvio server in 30 secondi...")
+            last_on_message=datetime.now()
+            for i in range(5):
+                send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface)
+                time.sleep(.1)
+            notify_except(message.from_user.id, "Il server è stato avviato da "+message.from_user.first_name + "\n\U0000231B Attendere 30 secondi...")
+        elif status_server:
+            bot.send_message(message.chat.id, "Il server risulta già avviato")
+        else:
+            bot.send_message(message.chat.id, "Il server risulta in fase di avvio... Attendere almeno altri "+ str((last_on_message+timedelta(seconds=30)-datetime.now()).seconds) +" secondi")
 
 @bot.message_handler(commands=['off'])
 def off(message):
-    global state
     if check_auth(message.from_user):
         #todo
         bot.send_message(message.chat.id, "Al momento non disponibile")
@@ -244,7 +258,7 @@ def ping_function():
 def thread_function():
     while True:
         try:
-            bot.infinity_polling(timeout=10,long_polling_timeout=5)
+            bot.infinity_polling(timeout=10, long_polling_timeout=5, skip_pending=True, logger_level=0)
         except:
             print("ERROR - PROGRAM: waiting for network...")
             time.sleep(2)
