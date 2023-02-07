@@ -230,6 +230,9 @@ def notify_except(exception, text):
 def check_auth(user):
     global users
     if user.id in users and users[user.id]["isRegistered"]:
+        if users[user.id]["username"]!=user.username:
+            users[user.id]["username"]=user.username
+            save_users()
         return True
     else:
         bot.send_message(user.id,"\U00002B55 Ci spiace " + user.first_name +", non risulti registrato nel sistema")
@@ -238,6 +241,9 @@ def check_auth(user):
 def check_admin(user):
     global users
     if user.id in users and users[user.id]["isRegistered"] and users[user.id]["isAdmin"]:
+        if users[user.id]["username"]!=user.username:
+            users[user.id]["username"]=user.username
+            save_users()
         return True
     else:
         bot.send_message(user.id,"\U00002B55 Ci spiace " + user.first_name +", non risulti registrato o admin nel sistema")
