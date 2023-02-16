@@ -100,7 +100,7 @@ def say(message):
     global users
     if check_admin(message.from_user):
         if len(message.text.split())>=2:
-            notify_except('', "AVVISO SERVER: " + message.text[4:].strip())
+            notify_except('', "AVVISO SERVER\n" + message.text[4:].strip())
 
 @bot.message_handler(commands=['listusers'])
 def listusers(message):
