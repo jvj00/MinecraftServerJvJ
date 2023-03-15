@@ -216,16 +216,22 @@ def save_users():
 def notify_admins(text):
     global users
     for user in users:
-        if users[user]["isAdmin"]:
-            bot.send_message(user,text)
+        if users[user]["isRegistered"] and users[user]["isAdmin"]:
+            try:
+                bot.send_message(user,text)
+            except:
+                pass
 
 def notify_except(exception, text):
     global users, maintenance
     if not maintenance:
         text="\U00002139 "+text
         for user in users:
-            if users[user]["notify"] and user!=exception:
-                bot.send_message(user,text)
+            if users[user]["isRegistered"] and users[user]["notify"] and user!=exception:
+                try:
+                    bot.send_message(user,text)
+                except:
+                    pass
 
 def check_auth(user):
     global users
@@ -264,7 +270,7 @@ def ping_function():
 def thread_function():
     while True:
         try:
-            bot.infinity_polling(timeout=10, long_polling_timeout=5, skip_pending=True, logger_level=0)
+            bot.infinity_polling(timeout=10, long_polling_timeout=5, logger_level=0)
         except:
             print("ERROR - PROGRAM: waiting for network...")
             time.sleep(2)
