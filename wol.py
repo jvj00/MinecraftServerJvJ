@@ -10,7 +10,7 @@ import socket
 from datetime import datetime, timedelta
 
 ## Set VARIABLEs ##
-path_json = "/home/pi/Desktop/MinecraftServerJvJ/"
+path_json = "/home/pi/MinecraftServerJvJ/"
 #path_json = "./"
 
 env={}
