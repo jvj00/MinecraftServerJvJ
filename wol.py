@@ -172,6 +172,7 @@ def on(message):
 
 @bot.message_handler(commands=['off_server'])
 def off(message):
+    global status_server, last_server_message
     if check_auth(message.from_user):
         if status_server and datetime.now()>=last_server_message+timedelta(seconds=29):
             bot.send_message(message.chat.id, "Spengo server in 30 secondi...")
@@ -193,7 +194,7 @@ def on_factorio(message):
                 bot.send_message(message.chat.id, "Avvio Factorio in massimo 30 secondi...")
                 last_on_factorio_message=datetime.now()
             else:
-                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+                bot.send_message(message.chat.id, "Errore del server:\n'<b>("+str(r.status_code)+")</b> "+r.text+"'")
         elif not status_server:
             bot.send_message(message.chat.id, "Il server risulta spento")
         else:
@@ -208,7 +209,7 @@ def off_factorio(message):
             if r.status_code==200:
                 bot.send_message(message.chat.id, "Spengo Factorio")
             else:
-                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+                bot.send_message(message.chat.id, "Errore del server:\n'<b>("+str(r.status_code)+")</b> "+r.text+"'")
         else:
             bot.send_message(message.chat.id, "Il server risulta spento")
 
@@ -222,7 +223,7 @@ def on_minecraft(message):
                 bot.send_message(message.chat.id, "Avvio Minecraft in massimo 60 secondi...")
                 last_on_minecraft_message=datetime.now()
             else:
-                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+                bot.send_message(message.chat.id, "Errore del server:\n'<b>("+str(r.status_code)+")</b> "+r.text+"'")
         elif not status_server:
             bot.send_message(message.chat.id, "Il server risulta spento")
         else:
@@ -237,7 +238,7 @@ def off_minecraft(message):
             if r.status_code==200:
                 bot.send_message(message.chat.id, "Spengo Minecraft")
             else:
-                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+                bot.send_message(message.chat.id, "Errore del server:\n'<b>("+str(r.status_code)+")</b> "+r.text+"'")
         else:
             bot.send_message(message.chat.id, "Il server risulta spento")
 
@@ -398,9 +399,9 @@ while not proceed:
         time.sleep(2)
 
 while True:
-    res = icmplib.ping(ip_server, count=1, timeout=3)
+    res = icmplib.ping(ip_server, count=4, timeout=4, interval=0.25)
     ping_response = res.is_alive
     if ping_response != status_server:
         status_server = ping_response
         notify_except('', "Server ON \U0001F7E2" if status_server else "Server OFF \U0001F534")
-    time.sleep(5)
+    time.sleep(10)
