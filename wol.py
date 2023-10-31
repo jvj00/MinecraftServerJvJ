@@ -262,8 +262,8 @@ def status(message):
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    txt+= "L'infrastuttura è composta da un server fisico che contiene due server virtuali con Minecraft e Factorio e un middleware che li gestisce. Assicurarsi dunque sia acceso il server fisico prima di accendere quelli virtuali. I comandi disponibili sono:\n"
-    txt = "/on_server - Avvia il server (circa 30 secondi per avviarsi)\n"
+    txt = "L'infrastuttura è composta da un server fisico che contiene due server virtuali con Minecraft e Factorio e un middleware che li gestisce. Assicurarsi dunque sia acceso il server fisico prima di accendere quelli virtuali. I comandi disponibili sono:\n"
+    txt+= "/on_server - Avvia il server (circa 30 secondi per avviarsi)\n"
     txt+= "/off_server - Ferma il server\n"
     txt+= "/on_factorio - Avvia il server Factorio (circa 30 secondi per avviarsi)\n"
     txt+= "/off_factorio - Ferma il server Factorio\n"
