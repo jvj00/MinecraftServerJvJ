@@ -23,7 +23,7 @@ except:
 
 bot = telebot.TeleBot(env["token"], parse_mode="HTML")
 password=env["password"]
-interface=env["interface"]
+interface_client=env["interface_client"]
 ip_server=env["ip_server"]
 mac_server=env["mac_server"]
 users={} #dict of dictionaries to store state-variables for each user
@@ -162,7 +162,7 @@ def on(message):
             bot.send_message(message.chat.id, "Avvio server in 30 secondi...")
             last_on_message=datetime.now()
             for i in range(5):
-                send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface)
+                send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface_client)
                 time.sleep(.1)
             notify_except(message.from_user.id, "Il server è stato avviato da "+message.from_user.first_name + "\n\U0000231B Attendere 30 secondi...")
         elif status_server:
