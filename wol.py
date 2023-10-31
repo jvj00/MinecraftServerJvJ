@@ -6,7 +6,8 @@ import time
 import signal
 import sys
 from wakeonlan import send_magic_packet
-import socket
+import icmplib
+import requests
 from datetime import datetime, timedelta
 
 ## Set VARIABLEs ##
@@ -22,15 +23,20 @@ except:
     sys.exit(1)
 
 bot = telebot.TeleBot(env["token"], parse_mode="HTML")
+
 password=env["password"]
 interface_client=env["interface_client"]
-ip_server=env["ip_server"]
 mac_server=env["mac_server"]
+ip_server=env["ip_server"]
+port_server=env["port_server"]
+secret_server=env["secret_server"]
+
 users={} #dict of dictionaries to store state-variables for each user
-ping_response=False
 status_server=False
 maintenance=False
-last_on_message=datetime.now()-timedelta(minutes=1)
+last_server_message=datetime.now()-timedelta(minutes=1)
+last_on_factorio_message=datetime.now()-timedelta(minutes=1)
+last_on_minecraft_message=datetime.now()-timedelta(minutes=1)
 
 ## FIRST STEPs ##
 
@@ -147,20 +153,14 @@ def listusers(message):
         save_users()
         bot.send_message(message.chat.id, "Impostato")
 
-@bot.message_handler(commands=['status'])
-def status(message):
-    global status_server
-    if check_auth(message.from_user):
-        bot.send_message(message.chat.id, "\U0001F7E2 Server ON" if status_server else "\U0001F534 Server OFF")
 
-
-@bot.message_handler(commands=['on'])
+@bot.message_handler(commands=['on_server'])
 def on(message):
-    global status_server, last_on_message
+    global status_server, last_server_message
     if check_auth(message.from_user):
-        if not status_server and datetime.now()>=last_on_message+timedelta(seconds=29):
+        if not status_server and datetime.now()>=last_server_message+timedelta(seconds=29):
             bot.send_message(message.chat.id, "Avvio server in 30 secondi...")
-            last_on_message=datetime.now()
+            last_server_message=datetime.now()
             for i in range(5):
                 send_magic_packet(mac_server, ip_address='255.255.255.255', interface=interface_client)
                 time.sleep(.1)
@@ -168,19 +168,112 @@ def on(message):
         elif status_server:
             bot.send_message(message.chat.id, "Il server risulta già avviato")
         else:
-            bot.send_message(message.chat.id, "Il server risulta in fase di avvio... Attendere almeno altri "+ str((last_on_message+timedelta(seconds=30)-datetime.now()).seconds) +" secondi")
+            bot.send_message(message.chat.id, "E' già stato inviato un comando simile... Attendere almeno altri "+ str((last_server_message+timedelta(seconds=30)-datetime.now()).seconds) +" secondi")
 
-@bot.message_handler(commands=['off'])
+@bot.message_handler(commands=['off_server'])
 def off(message):
     if check_auth(message.from_user):
-        #todo
-        bot.send_message(message.chat.id, "Al momento non disponibile")
+        if status_server and datetime.now()>=last_server_message+timedelta(seconds=29):
+            bot.send_message(message.chat.id, "Spengo server in 30 secondi...")
+            last_server_message=datetime.now()
+            send_command("shutdown")
+            notify_except(message.from_user.id, "Il server è stato spento da "+message.from_user.first_name)
+        elif not status_server:
+            bot.send_message(message.chat.id, "Il server risulta già spento")
+        else:
+            bot.send_message(message.chat.id, "E' già stato inviato un comando simile... Attendere almeno altri "+ str((last_server_message+timedelta(seconds=30)-datetime.now()).seconds) +" secondi")
 
+@bot.message_handler(commands=['on_factorio'])
+def on_factorio(message):
+    global last_on_factorio_message
+    if check_auth(message.from_user):
+        if status_server and datetime.now()>=last_on_factorio_message+timedelta(seconds=29):
+            r = send_command("startFactorio")
+            if r.status_code==200:
+                bot.send_message(message.chat.id, "Avvio Factorio in massimo 30 secondi...")
+                last_on_factorio_message=datetime.now()
+            else:
+                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+        elif not status_server:
+            bot.send_message(message.chat.id, "Il server risulta spento")
+        else:
+            bot.send_message(message.chat.id, "E' già stato inviato un comando simile... Attendere almeno altri "+ str((last_on_factorio_message+timedelta(seconds=30)-datetime.now()).seconds) +" secondi")
+
+@bot.message_handler(commands=['off_factorio'])
+def off_factorio(message):
+    global last_on_factorio_message
+    if check_auth(message.from_user):
+        if status_server:
+            r = send_command("stopFactorio")
+            if r.status_code==200:
+                bot.send_message(message.chat.id, "Spengo Factorio")
+            else:
+                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+        else:
+            bot.send_message(message.chat.id, "Il server risulta spento")
+
+@bot.message_handler(commands=['on_minecraft'])
+def on_minecraft(message):
+    global last_on_minecraft_message
+    if check_auth(message.from_user):
+        if status_server and datetime.now()>=last_on_minecraft_message+timedelta(seconds=59):
+            r = send_command("startMinecraft")
+            if r.status_code==200:
+                bot.send_message(message.chat.id, "Avvio Minecraft in massimo 60 secondi...")
+                last_on_minecraft_message=datetime.now()
+            else:
+                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+        elif not status_server:
+            bot.send_message(message.chat.id, "Il server risulta spento")
+        else:
+            bot.send_message(message.chat.id, "E' già stato inviato un comando simile... Attendere almeno altri "+ str((last_on_minecraft_message+timedelta(seconds=60)-datetime.now()).seconds) +" secondi")
+
+@bot.message_handler(commands=['off_minecraft'])
+def off_minecraft(message):
+    global last_on_minecraft_message
+    if check_auth(message.from_user):
+        if status_server:
+            r = send_command("stopMinecraft")
+            if r.status_code==200:
+                bot.send_message(message.chat.id, "Spengo Minecraft")
+            else:
+                bot.send_message(message.chat.id, "Errore del server:\n'"+r.status_code+": "+r.text+"'")
+        else:
+            bot.send_message(message.chat.id, "Il server risulta spento")
+
+@bot.message_handler(commands=['status'])
+def status(message):
+    if check_auth(message.from_user):
+        server, minecraft, factorio = check_server()
+        txt=""
+        if not server:
+            txt = "Server:          \U0001F534 OFF"
+        else:
+            txt = "Server:          \U0001F7E2 ON"
+            if minecraft:
+                txt += "\n |--> Minecraft: \U0001F7E2 ON"
+            else:
+                txt += "\n |--> Minecraft: \U0001F534 OFF"
+            if factorio:
+                txt += "\n |--> Factorio:  \U0001F7E2 ON"
+            else:
+                txt += "\n |--> Factorio:  \U0001F534 OFF"
+        bot.send_message(message.chat.id, "<code>"+txt+"</code>\n\n Le notifiche sono "+("ACCESE" if users[message.from_user.id]["notify"] else "SPENTE"))
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    text="/on - Avvia il server (circa 30 secondi per avviarsi)\n/off - Ferma il server\n/status - Visualizza lo stato del server on/off\n/help - Visualizza questa guida\n/notify_on - Abilita le notifiche per il tuo account\n/notify_off - Disabilita le notifiche per il tuo account"
-    bot.send_message(message.chat.id, text)
+    txt+= "L'infrastuttura è composta da un server fisico che contiene due server virtuali con Minecraft e Factorio e un middleware che li gestisce. Assicurarsi dunque sia acceso il server fisico prima di accendere quelli virtuali. I comandi disponibili sono:\n"
+    txt = "/on_server - Avvia il server (circa 30 secondi per avviarsi)\n"
+    txt+= "/off_server - Ferma il server\n"
+    txt+= "/on_factorio - Avvia il server Factorio (circa 30 secondi per avviarsi)\n"
+    txt+= "/off_factorio - Ferma il server Factorio\n"
+    txt+= "/on_minecraft - Avvia il server Minecraft (circa 60 secondi per avviarsi)\n"
+    txt+= "/off_minecraft - Ferma il server Minecraft\n"
+    txt+= "/status - Visualizza lo stato dei server\n"
+    txt+= "/help - Visualizza questa guida\n"
+    txt+= "/notify_on - Abilita le notifiche per il tuo account\n"
+    txt+= "/notify_off - Disabilita le notifiche per il tuo account"
+    bot.send_message(message.chat.id, txt)
 
 ## GENERAL HANDLER ##
 from itertools import groupby
@@ -255,15 +348,21 @@ def check_admin(user):
         bot.send_message(user.id,"\U00002B55 Ci spiace " + user.first_name +", non risulti registrato o admin nel sistema")
         return False
 
-def ping_function():
-    global ping_response
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip_server, 25565))
-        ping_response=True
-    except socket.error as e:
-        ping_response=False
-    s.close()
+def send_command(cmd):
+    r = requests.get("http://"+ip_server+":"+port_server+"/"+cmd+"?"+secret_server)
+    return r
+
+def check_server():
+    minecraft = False
+    factorio = False
+    if status_server:
+        r = requests.get("http://"+ip_server+":"+port_server+"/checkMinecraft?"+secret_server)
+        minecraft = r.text=="true"
+        r = requests.get("http://"+ip_server+":"+port_server+"/checkFactorio?"+secret_server)
+        factorio = r.text=="true"
+    return status_server, minecraft, factorio
+
+
 
 ## POLLING ##
 
@@ -299,13 +398,8 @@ while not proceed:
         time.sleep(2)
 
 while True:
-    th_ping = threading.Thread(target=ping_function)
-    th_ping.daemon=True
-    th_ping.start()
-    iter=0
-    while not ping_response and iter < 5:
-        iter+=1
-        time.sleep(1)
+    res = icmplib.ping(ip_server, count=1, timeout=3)
+    ping_response = res.is_alive
     if ping_response != status_server:
         status_server = ping_response
         notify_except('', "Server ON \U0001F7E2" if status_server else "Server OFF \U0001F534")
